@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Harry Potter's To-Do List</title>
+<style>
+  :root {
+    --parchment: #f5ecd7;
+    --parchment-dark: #ece0c4;
+    --ink: #2b1d0e;
+    --ink-soft: #5c4a32;
+    --gryffindor-red: #740001;
+    --gryffindor-gold: #d3a625;
+    --done-green: #2e5b34;
+    --shadow: rgba(43, 29, 14, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    font-family: Georgia, "Times New Roman", serif;
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(211, 166, 37, 0.12), transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(116, 0, 1, 0.18), transparent 55%),
+      linear-gradient(160deg, #1a1023 0%, #241631 45%, #17101f 100%);
+    color: var(--ink);
+    padding: 40px 16px 80px;
+  }
+
+  .scroll {
+    max-width: 720px;
+    margin: 0 auto;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.35), transparent 60%),
+      linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dark) 100%);
+    border-radius: 10px;
+    box-shadow: 0 18px 50px var(--shadow), 0 0 0 1px rgba(211, 166, 37, 0.35);
+    padding: 44px 44px 36px;
+    position: relative;
+  }
+
+  .scroll::before, .scroll::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    height: 8px;
+    background: linear-gradient(90deg, var(--gryffindor-red), var(--gryffindor-gold), var(--gryffindor-red));
+    border-radius: 10px 10px 0 0;
+    top: 0;
+  }
+  .scroll::after { top: auto; bottom: 0; border-radius: 0 0 10px 10px; }
+
+  header { text-align: center; margin-bottom: 8px; }
+
+  h1 {
+    font-size: clamp(1.7rem, 4.5vw, 2.4rem);
+    letter-spacing: 0.5px;
+    color: var(--gryffindor-red);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+  }
+
+  .subtitle {
+    font-style: italic;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    font-size: 0.95rem;
+  }
+
+  .progress-wrap { margin: 22px 0 6px; }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+
+  .progress-bar {
+    height: 12px;
+    background: rgba(43, 29, 14, 0.12);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(43, 29, 14, 0.15);
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--gryffindor-gold), #e8c35a);
+    border-radius: 999px;
+    transition: width 0.45s ease;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 18px 0 10px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(43, 29, 14, 0.3);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .filter-btn:hover { background: rgba(211, 166, 37, 0.2); }
+
+  .filter-btn.active {
+    background: var(--gryffindor-red);
+    border-color: var(--gryffindor-red);
+    color: #f7e8b5;
+  }
+
+  section.category { margin-top: 26px; }
+
+  .category-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 2px solid rgba(211, 166, 37, 0.55);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+
+  .category-header h2 {
+    font-size: 1.15rem;
+    color: var(--ink);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .category-header .emoji { font-size: 1.1rem; }
+
+  .count {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  ul.tasks { list-style: none; }
+
+  li.task {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 9px 8px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    animation: appear 0.25s ease;
+  }
+
+  @keyframes appear {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  li.task:hover { background: rgba(211, 166, 37, 0.14); }
+
+  .checkbox {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+    border: 2px solid var(--ink-soft);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.5);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: transparent;
+    transition: all 0.2s ease;
+  }
+
+  .checkbox:hover { border-color: var(--gryffindor-red); transform: scale(1.08); }
+
+  li.task.done .checkbox {
+    background: var(--done-green);
+    border-color: var(--done-green);
+    color: #f5ecd7;
+  }
+
+  .task-text {
+    flex: 1;
+    line-height: 1.45;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  li.task.done .task-text {
+    color: var(--ink-soft);
+    text-decoration: line-through;
+    text-decoration-color: rgba(116, 0, 1, 0.55);
+    opacity: 0.75;
+  }
+
+  .delete-btn {
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: rgba(116, 0, 1, 0.0);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  li.task:hover .delete-btn { color: rgba(116, 0, 1, 0.65); }
+  .delete-btn:hover { background: rgba(116, 0, 1, 0.12); color: var(--gryffindor-red); }
+
+  .empty-note {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    padding: 6px 8px;
+  }
+
+  form.add-form {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: rgba(255,255,255,0.4);
+    border: 1px dashed rgba(43, 29, 14, 0.35);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .add-form input[type="text"] {
+    flex: 1 1 240px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 9px 12px;
+    border: 1px solid rgba(43, 29, 14, 0.3);
+    border-radius: 8px;
+    background: var(--parchment);
+    color: var(--ink);
+  }
+
+  .add-form input[type="text"]:focus {
+    outline: 2px solid var(--gryffindor-gold);
+    outline-offset: 1px;
+  }
+
+  .add-form select {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 9px 10px;
+    border: 1px solid rgba(43, 29, 14, 0.3);
+    border-radius: 8px;
+    background: var(--parchment);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .add-form button {
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 8px;
+    background: var(--gryffindor-red);
+    color: #f7e8b5;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .add-form button:hover { background: #8e0b0c; transform: translateY(-1px); }
+
+  footer {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+  <main class="scroll">
+    <header>
+      <h1>⚡ Harry Potter's To-Do List</h1>
+      <p class="subtitle">Year: Sixth year at Hogwarts School of Witchcraft and Wizardry</p>
+    </header>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-text">0 of 0 tasks complete</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+
+    <div class="toolbar" id="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="open">To Do</button>
+      <button class="filter-btn" data-filter="done">Done</button>
+    </div>
+
+    <div id="categories"></div>
+
+    <form class="add-form" id="add-form">
+      <input type="text" id="new-task-text" placeholder="Add a new task, e.g. Learn to Apparate…" required />
+      <select id="new-task-category"></select>
+      <button type="submit">Add ✒️</button>
+    </form>
+
+    <footer>“I solemnly swear that I am up to no good.” — Tap a task to mark it done.</footer>
+  </main>
+
+<script>
+  const CATEGORIES = [
+    { id: "urgent", name: "Urgent", emoji: "🔥" },
+    { id: "school", name: "School", emoji: "📚" },
+    { id: "quidditch", name: "Quidditch", emoji: "🧹" },
+    { id: "personal", name: "Personal", emoji: "🦉" },
+  ];
+
+  const DEFAULT_TASKS = [
+    { cat: "urgent", text: "Finish Potions essay for Professor Slughorn (borrow the Half-Blood Prince's book… again)", done: false },
+    { cat: "urgent", text: "Practice non-verbal spells before Defence Against the Dark Arts class", done: false },
+    { cat: "urgent", text: "Figure out what Draco Malfoy is up to on the seventh floor", done: false },
+    { cat: "school", text: "Attend private lessons with Professor Dumbledore", done: false },
+    { cat: "school", text: "Review memories in the Pensieve and take notes on Tom Riddle", done: false },
+    { cat: "school", text: "Catch up on Transfiguration homework (ask Hermione — nicely)", done: false },
+    { cat: "school", text: "Return overdue books to Madam Pince before she hexes me", done: false },
+    { cat: "quidditch", text: "Schedule tryouts for the Gryffindor team (need a new Keeper and Chasers)", done: false },
+    { cat: "quidditch", text: "Polish the Firebolt", done: false },
+    { cat: "quidditch", text: "Plan training sessions around Ron's confidence issues", done: false },
+    { cat: "personal", text: "Write to Hagrid and visit for tea (bring dog biscuits for Fang)", done: false },
+    { cat: "personal", text: "Buy more Chocolate Frogs at Honeydukes next Hogsmeade weekend", done: false },
+    { cat: "personal", text: "Talk to Ginny… eventually… maybe after the next match", done: false },
+    { cat: "personal", text: "Avoid Filch and Mrs. Norris after curfew (use the Marauder's Map)", done: false },
+    { cat: "personal", text: "Survive another summer at the Dursleys'", done: true },
+    { cat: "school", text: "Convince the Ministry I'm not lying about You-Know-Who", done: true },
+    { cat: "school", text: "Pass enough O.W.L.s to continue with Auror training classes", done: true },
+  ];
+
+  const STORAGE_KEY = "hp-todo-list-v1";
+  let tasks;
+  try {
+    tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
+  } catch (e) { tasks = null; }
+  if (!Array.isArray(tasks)) {
+    tasks = DEFAULT_TASKS.map((t, i) => ({ id: i + 1, ...t }));
+  }
+  let nextId = tasks.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+  let filter = "all";
+
+  const categoriesEl = document.getElementById("categories");
+  const filtersEl = document.getElementById("filters");
+  const selectEl = document.getElementById("new-task-category");
+
+  for (const cat of CATEGORIES) {
+    const opt = document.createElement("option");
+    opt.value = cat.id;
+    opt.textContent = `${cat.emoji} ${cat.name}`;
+    selectEl.appendChild(opt);
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  function render() {
+    categoriesEl.innerHTML = "";
+
+    for (const cat of CATEGORIES) {
+      const catTasks = tasks.filter(t => t.cat === cat.id);
+      const visible = catTasks.filter(t =>
+        filter === "all" ? true : filter === "done" ? t.done : !t.done
+      );
+
+      const section = document.createElement("section");
+      section.className = "category";
+
+      const header = document.createElement("div");
+      header.className = "category-header";
+      header.innerHTML = `<span class="emoji">${cat.emoji}</span><h2>${cat.name}</h2>` +
+        `<span class="count">${catTasks.filter(t => t.done).length}/${catTasks.length} done</span>`;
+      section.appendChild(header);
+
+      const list = document.createElement("ul");
+      list.className = "tasks";
+
+      if (visible.length === 0) {
+        const note = document.createElement("p");
+        note.className = "empty-note";
+        note.textContent = filter === "done"
+          ? "Nothing finished here yet…"
+          : "Nothing to do — mischief managed!";
+        section.appendChild(note);
+      }
+
+      for (const task of visible) {
+        const li = document.createElement("li");
+        li.className = "task" + (task.done ? " done" : "");
+
+        const box = document.createElement("button");
+        box.className = "checkbox";
+        box.setAttribute("aria-label", task.done ? "Mark as not done" : "Mark as done");
+        box.textContent = "✓";
+        box.addEventListener("click", () => toggle(task.id));
+
+        const text = document.createElement("span");
+        text.className = "task-text";
+        text.textContent = task.text;
+        text.addEventListener("click", () => toggle(task.id));
+
+        const del = document.createElement("button");
+        del.className = "delete-btn";
+        del.setAttribute("aria-label", "Delete task");
+        del.textContent = "✕";
+        del.addEventListener("click", () => remove(task.id));
+
+        li.append(box, text, del);
+        list.appendChild(li);
+      }
+
+      section.appendChild(list);
+      categoriesEl.appendChild(section);
+    }
+
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    document.getElementById("progress-text").textContent = `${done} of ${total} tasks complete`;
+    document.getElementById("progress-pct").textContent = pct + "%";
+    document.getElementById("progress-fill").style.width = pct + "%";
+  }
+
+  function toggle(id) {
+    const task = tasks.find(t => t.id === id);
+    if (task) { task.done = !task.done; save(); render(); }
+  }
+
+  function remove(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    save(); render();
+  }
+
+  filtersEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".filter-btn");
+    if (!btn) return;
+    filter = btn.dataset.filter;
+    filtersEl.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b === btn));
+    render();
+  });
+
+  document.getElementById("add-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("new-task-text");
+    const text = input.value.trim();
+    if (!text) return;
+    tasks.push({ id: nextId++, cat: selectEl.value, text, done: false });
+    input.value = "";
+    save(); render();
+  });
+
+  render();
+</script>
+</body>
+</html>
