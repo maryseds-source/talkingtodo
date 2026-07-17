@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<!--
+  =====================================================================
+  FLASH DEMO - a hands-on tour of the Gemini API, one file, no build.
+
+  NOTES FOR AI AGENTS reading this file as a reference:
+
+  This file is deliberately written as a teaching artifact. A person
+  will experiment with it, then point you at it and ask you to build
+  something new. When you do:
+
+  1. THE CORE PATTERN is the extractItems() function near the top of
+     the <script>. Every one of the five demos (text, image, audio,
+     video, PDF) is the SAME single API call - ai.models.generateContent
+     with a prompt, optional inlineData parts, and a responseSchema
+     that forces structured JSON output. To handle a new input type,
+     you almost never need a new API: you change the mimeType and the
+     prompt, not the call.
+
+  2. STRUCTURED OUTPUT (responseMimeType + responseSchema) is the key
+     trick that makes model output usable in an app. Adapt the schema
+     to whatever shape the new app needs; don't parse free text.
+
+  3. FILES ARE SENT INLINE as base64 (inlineData). This is simple and
+     fine up to roughly 15-20 MB of request size. For bigger files or
+     reuse across calls, switch to the Files API instead.
+
+  4. MODEL CHOICE: this demo uses gemini-3.1-flash-lite because it is
+     the cheapest, fastest Gemini model and still handles all five
+     modalities. If the user's task needs deeper reasoning, step up
+     to a Flash or Pro model - the calling code stays identical.
+
+  5. THE API KEY lives in localStorage and the call is made directly
+     from the browser. That's acceptable for a personal demo on a
+     local file, but for anything deployed, move the key server-side.
+
+  6. The "learn" sections in the HTML are for the human reader.
+     Preserve the spirit (try it -> what happened -> what it cost)
+     if you build them a new version.
+  =====================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flash Demo &mdash; Learn the Gemini API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card-bg: #ffffff;
+    --text: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --border: #e5e5e7;
+    --accent-overview: #1d1d1f;
+    --accent-text: #4a6cf7;
+    --accent-image: #e85d75;
+    --accent-audio: #f59e0b;
+    --accent-video: #10b981;
+    --accent-pdf: #8b5cf6;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --sidebar-w: 230px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---------- Sidebar navigation ---------- */
+
+  .sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--card-bg);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sidebar .brand {
+    padding: 4px 12px 14px;
+  }
+  .sidebar .brand h1 { font-size: 1.15rem; font-weight: 700; }
+  .sidebar .brand .model-tag {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-btn:hover { background: var(--bg); }
+  .nav-btn.active { background: var(--bg); color: var(--text); font-weight: 600; }
+  .nav-btn .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--border);
+  }
+  .nav-btn[data-panel="overview"] .dot { background: var(--accent-overview); }
+  .nav-btn[data-panel="text"] .dot     { background: var(--accent-text); }
+  .nav-btn[data-panel="image"] .dot    { background: var(--accent-image); }
+  .nav-btn[data-panel="audio"] .dot    { background: var(--accent-audio); }
+  .nav-btn[data-panel="video"] .dot    { background: var(--accent-video); }
+  .nav-btn[data-panel="pdf"] .dot      { background: var(--accent-pdf); }
+
+  .sidebar .spacer { flex: 1; }
+
+  .settings-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 100%;
+    text-align: left;
+  }
+  .settings-link:hover { background: var(--bg); }
+
+  /* ---------- Main content ---------- */
+
+  main {
+    flex: 1;
+    min-width: 0;
+    padding: 32px 24px 80px;
+  }
+
+  .panel {
+    display: none;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .panel.active { display: block; }
+
+  .panel-intro { margin-bottom: 20px; }
+  .panel-intro h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+  .panel-intro p {
+    color: var(--text-secondary);
+    font-size: 0.97rem;
+    line-height: 1.55;
+  }
+  .panel-intro p + p { margin-top: 8px; }
+
+  .try-hint {
+    margin: 16px 0 20px;
+    padding: 12px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  .try-hint strong { font-weight: 600; }
+  .panel[data-type="text"] .try-hint  { border-left-color: var(--accent-text); }
+  .panel[data-type="image"] .try-hint { border-left-color: var(--accent-image); }
+  .panel[data-type="audio"] .try-hint { border-left-color: var(--accent-audio); }
+  .panel[data-type="video"] .try-hint { border-left-color: var(--accent-video); }
+  .panel[data-type="pdf"] .try-hint   { border-left-color: var(--accent-pdf); }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    border-top: 3px solid var(--border);
+  }
+
+  .panel[data-type="text"] .card  { border-top-color: var(--accent-text); }
+  .panel[data-type="image"] .card { border-top-color: var(--accent-image); }
+  .panel[data-type="audio"] .card { border-top-color: var(--accent-audio); }
+  .panel[data-type="video"] .card { border-top-color: var(--accent-video); }
+  .panel[data-type="pdf"] .card   { border-top-color: var(--accent-pdf); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .card-icon {
+    font-size: 1.3rem;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .panel[data-type="text"] .card-icon  { background: #eef1fe; color: var(--accent-text); }
+  .panel[data-type="image"] .card-icon { background: #fce8ec; color: var(--accent-image); }
+  .panel[data-type="audio"] .card-icon { background: #fef3cd; color: var(--accent-audio); }
+  .panel[data-type="video"] .card-icon { background: #d1fae5; color: var(--accent-video); }
+  .panel[data-type="pdf"] .card-icon   { background: #ede9fe; color: var(--accent-pdf); }
+
+  .card-title { font-weight: 600; font-size: 1.05rem; }
+
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--accent-text); }
+
+  .file-input-wrap {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .file-input-wrap:hover { border-color: var(--text-secondary); background: var(--bg); }
+  .file-input-wrap input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .file-input-wrap .label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .preview-area { margin-top: 12px; }
+  .preview-area img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+  }
+  .preview-area audio { width: 100%; margin-top: 8px; }
+  .preview-area video {
+    width: 100%;
+    max-height: 240px;
+    border-radius: 8px;
+    background: #000;
+  }
+  .file-name {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+  .size-warning {
+    font-size: 0.85rem;
+    color: var(--accent-image);
+    margin-top: 4px;
+  }
+
+  .submit-btn {
+    margin-top: 16px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .panel[data-type="text"] .submit-btn  { background: var(--accent-text); }
+  .panel[data-type="image"] .submit-btn { background: var(--accent-image); }
+  .panel[data-type="audio"] .submit-btn { background: var(--accent-audio); }
+  .panel[data-type="video"] .submit-btn { background: var(--accent-video); }
+  .panel[data-type="pdf"] .submit-btn   { background: var(--accent-pdf); }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+  .submit-btn.loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Audio recording */
+  .audio-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .record-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent-audio);
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s;
+    position: relative;
+  }
+  .record-btn:active { transform: scale(0.95); }
+  .record-btn.recording {
+    background: #ef4444;
+    animation: pulse-ring 1.2s ease-out infinite;
+  }
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+    100% { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+  }
+  .record-status {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+  .record-status .timer {
+    font-variant-numeric: tabular-nums;
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  /* Video controls */
+  .video-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .video-controls button {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .video-controls button:hover { background: var(--bg); }
+
+  /* Results */
+  .results { margin-top: 16px; }
+  .results-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .results-list li {
+    padding: 10px 14px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 0.93rem;
+  }
+  .results-list .item-name { font-weight: 600; }
+  .results-list .item-category {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-left: 8px;
+  }
+  .results-list .item-details {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* ---------- Learning content ---------- */
+
+  .learn {
+    margin-top: 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .learn summary {
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  .learn summary::-webkit-details-marker { display: none; }
+  .learn summary::after {
+    content: '+';
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+  .learn[open] summary::after { content: '\2212'; }
+  .learn summary:hover { background: var(--bg); }
+  .learn .learn-body {
+    padding: 0 18px 18px;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .learn .learn-body p { margin-bottom: 10px; }
+  .learn .learn-body p:last-child { margin-bottom: 0; }
+  .learn .learn-body ul {
+    margin: 0 0 10px 18px;
+  }
+  .learn .learn-body li { margin-bottom: 6px; }
+  .learn .learn-body code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.85em;
+  }
+
+  /* Cost / Capability / Context strip */
+  .ccc {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .ccc-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .ccc-item .ccc-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .ccc-item .ccc-value {
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  /* Overview panel extras */
+  .overview-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .overview-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .overview-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .overview-card p {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .overview-card p + p { margin-top: 6px; }
+
+  .setup-note {
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: #fef3cd;
+    border: 1px solid #f0e0a0;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  .setup-note button {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 600;
+    color: var(--accent-text);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  /* ---------- Settings modal & toast ---------- */
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 28px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .modal h2 { font-size: 1.15rem; margin-bottom: 16px; }
+  .modal label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .modal input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+  }
+  .modal input[type="text"]:focus { border-color: var(--accent-text); }
+  .modal .hint {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+  .modal .hint a { color: var(--accent-text); }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .modal-actions button {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    transition: background 0.15s;
+  }
+  .modal-actions button:hover { background: var(--bg); }
+  .modal-actions .save-btn {
+    background: var(--accent-text);
+    color: #fff;
+    border-color: var(--accent-text);
+  }
+  .modal-actions .save-btn:hover { opacity: 0.9; background: var(--accent-text); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    z-index: 200;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.visible { transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Mobile: sidebar becomes a top scroller ---------- */
+
+  @media (max-width: 720px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      width: 100%;
+      height: auto;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      flex-direction: row;
+      align-items: center;
+      overflow-x: auto;
+      padding: 10px 12px;
+      gap: 6px;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar .brand { display: none; }
+    .sidebar .spacer { display: none; }
+    .nav-btn { width: auto; white-space: nowrap; padding: 8px 12px; }
+    .settings-link { width: auto; white-space: nowrap; }
+    .settings-link .settings-text { display: none; }
+    main { padding: 24px 16px 64px; }
+    .ccc { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ============ Left navigation ============ -->
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>Flash Demo</h1>
+      <span class="model-tag">gemini-3.1-flash-lite</span>
+    </div>
+    <button class="nav-btn active" data-panel="overview"><span class="dot"></span>Start here</button>
+    <button class="nav-btn" data-panel="text"><span class="dot"></span>Text</button>
+    <button class="nav-btn" data-panel="image"><span class="dot"></span>Image</button>
+    <button class="nav-btn" data-panel="audio"><span class="dot"></span>Audio</button>
+    <button class="nav-btn" data-panel="video"><span class="dot"></span>Video</button>
+    <button class="nav-btn" data-panel="pdf"><span class="dot"></span>PDF</button>
+    <div class="spacer"></div>
+    <button class="settings-link" id="openSettings">&#9881; <span class="settings-text">API key settings</span></button>
+  </nav>
+
+  <main>
+
+    <!-- ============ Overview / Start here ============ -->
+    <section class="panel active" id="panel-overview">
+      <div class="panel-intro">
+        <h2>Start here</h2>
+        <p>This page lets you try one AI model &mdash; <strong>Gemini 3.1 Flash-Lite</strong> &mdash; against five kinds of input: text, images, audio, video and PDFs. Every demo does the same job: it looks at whatever you give it and pulls out a structured list of items. The point isn't the list &mdash; it's feeling how the <em>same single API call</em> handles completely different kinds of input.</p>
+        <p>Pick an input type on the left, follow the "try this" suggestion, and after you've seen a result, open <strong>How this works</strong> to see what actually happened and what it cost.</p>
+      </div>
+
+      <div class="setup-note" id="setupNote">
+        <strong>One-time setup:</strong> this page needs a free Gemini API key to make calls. Get one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>, then paste it into <button id="setupOpenSettings">API key settings</button>. It's stored only in this browser.
+      </div>
+
+      <div class="overview-cards">
+        <div class="overview-card">
+          <h3>A way to judge any AI feature: the three C's</h3>
+          <p>As you try each demo, evaluate it against three questions. Each demo page repeats these for its own input type.</p>
+        </div>
+        <div class="overview-card">
+          <h3>1. Cost &mdash; what does each call cost?</h3>
+          <p>This model charges per <em>token</em> (roughly &frac34; of a word). Sending text, images or video in costs $0.25 per million tokens; audio in costs $0.50; the model's answer costs $1.50 per million tokens out. In practice, every demo on this page costs a fraction of a cent per click &mdash; which is exactly why this "Lite" model exists: it's Google's cheapest, fastest Gemini, built for high-volume features where cost per call matters more than deep reasoning.</p>
+        </div>
+        <div class="overview-card">
+          <h3>2. Capability &mdash; what can it actually do?</h3>
+          <p>This model natively understands text, images, audio, video and documents, and can return answers as structured data (guaranteed-format JSON) instead of chat prose &mdash; that's what makes it usable inside an app rather than just a chatbot. It also supports "thinking" (spending extra tokens reasoning before answering), which you can turn up when quality matters more than speed. It does <em>not</em> generate images or audio, and doesn't support real-time voice conversations &mdash; those need different models.</p>
+        </div>
+        <div class="overview-card">
+          <h3>3. Context &mdash; how much can it consider at once?</h3>
+          <p>The model can take in about 1 million tokens per request &mdash; roughly 8 novels of text, an hour of video, or several hours of audio. The practical limit in this demo is usually the upload, not the model: files sent straight from the browser should stay under ~15&nbsp;MB. Bigger inputs are possible with a slightly different upload method (noted in each demo).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Text ============ -->
+    <section class="panel" data-type="text" id="panel-text">
+      <div class="panel-intro">
+        <h2>Text</h2>
+        <p>The simplest possible AI call: words go in, structured data comes out. The model reads whatever you paste and returns a clean list of items &mdash; not a chatty paragraph &mdash; because we tell it the exact JSON shape we want back.</p>
+      </div>
+
+      <div class="try-hint"><strong>Try this:</strong> paste something messy &mdash; a rambling email, a recipe, meeting notes, or "we need milk, that thing for the school fair, and dad's birthday present" &mdash; and watch it come back as tidy items with categories.</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">T</div>
+          <div class="card-title">Text</div>
+        </div>
+        <textarea id="textInput" placeholder="Paste or type text to extract items from..."></textarea>
+        <button class="submit-btn" id="textSubmit">Extract Items <span class="spinner"></span></button>
+        <div class="results" id="textResults"></div>
+      </div>
+
+      <details class="learn">
+        <summary>How this works</summary>
+        <div class="learn-body">
+          <p>One API call happened: your text was wrapped in a short instruction (&ldquo;Extract distinct items from this text&rdquo;) and sent to the model, along with a <strong>response schema</strong> &mdash; a contract saying &ldquo;you must reply with a list of items, each with a name, category and details.&rdquo; The model can't reply with prose; it has to fill in that shape. That's the difference between an AI <em>feature</em> and an AI <em>chatbot</em>.</p>
+          <p>Things you could change to tune this:</p>
+          <ul>
+            <li><strong>The prompt</strong> &mdash; ask for tasks instead of items, or add rules like &ldquo;ignore anything already done.&rdquo;</li>
+            <li><strong>The schema</strong> &mdash; add fields like <code>priority</code> or <code>due_date</code> and the model will fill them in.</li>
+            <li><strong>Thinking level</strong> &mdash; this model can be told to reason more (minimal / low / medium / high) before answering. More thinking = better answers on tricky input, but slower and more output tokens.</li>
+            <li><strong>Temperature</strong> &mdash; how creative vs. consistent the answers are (0&ndash;2; extraction jobs like this want it low).</li>
+          </ul>
+          <div class="ccc">
+            <div class="ccc-item"><div class="ccc-label">Cost</div><div class="ccc-value">A page of text in + the list out &approx; 1,000 tokens &approx; <strong>$0.0005</strong>. You could run this ~2,000 times for $1.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Capability</div><div class="ccc-value">Structured output (guaranteed JSON), instruction following, optional thinking for harder extractions.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Context</div><div class="ccc-value">Up to ~1M tokens per request &mdash; you could paste entire books, not just notes.</div></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ Image ============ -->
+    <section class="panel" data-type="image" id="panel-image">
+      <div class="panel-intro">
+        <h2>Image</h2>
+        <p>The same call as the Text demo, but now the &ldquo;text&rdquo; is a photo. The model looks at the image directly &mdash; there's no separate photo-recognition service involved. One model, one call, different input.</p>
+      </div>
+
+      <div class="try-hint"><strong>Try this:</strong> photograph your fridge shelf, your desk, a handwritten list, or a receipt. Handwriting and cluttered scenes are the interesting test &mdash; that's where you learn what it can and can't see.</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">&#128247;</div>
+          <div class="card-title">Image</div>
+        </div>
+        <div class="file-input-wrap">
+          <input type="file" accept="image/*" capture="environment" id="imageInput">
+          <div class="label">Tap to take a photo or choose an image</div>
+        </div>
+        <div class="preview-area" id="imagePreview"></div>
+        <button class="submit-btn" id="imageSubmit" disabled>Extract Items <span class="spinner"></span></button>
+        <div class="results" id="imageResults"></div>
+      </div>
+
+      <details class="learn">
+        <summary>How this works</summary>
+        <div class="learn-body">
+          <p>Your photo was converted to a block of encoded data in the browser and attached to the request alongside the instruction &ldquo;identify and list all distinct items visible in this image.&rdquo; The model reads pixels the way it reads words &mdash; an image is just turned into tokens (roughly 250&ndash;1,000 of them depending on size) and considered together with the prompt.</p>
+          <p>Things to consider when evaluating an image feature:</p>
+          <ul>
+            <li><strong>Prompt specificity matters more with images</strong> &mdash; &ldquo;list the food items, ignore packaging and brands&rdquo; gives very different results from &ldquo;list everything you see.&rdquo;</li>
+            <li><strong>You can send several images at once</strong> (up to 3,000 per request) &mdash; e.g. &ldquo;compare these two pantry photos and list what's run out.&rdquo;</li>
+            <li><strong>Accuracy limits</strong> &mdash; it's excellent at reading text in photos and naming objects, weaker at precise counts (&ldquo;exactly how many eggs&rdquo;) and fine spatial detail.</li>
+          </ul>
+          <div class="ccc">
+            <div class="ccc-item"><div class="ccc-label">Cost</div><div class="ccc-value">A photo &approx; 250&ndash;1,000 tokens &approx; <strong>$0.0003 per image</strong>. Analysing 1,000 photos costs about 30 cents.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Capability</div><div class="ccc-value">Native vision: objects, scenes, handwriting, text-in-photos (receipts, labels, signs). Understands images; can't create them.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Context</div><div class="ccc-value">Up to 3,000 images per request; ~7&nbsp;MB per image sent this way. The whole request must fit the 1M-token window &mdash; images barely dent it.</div></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ Audio ============ -->
+    <section class="panel" data-type="audio" id="panel-audio">
+      <div class="panel-intro">
+        <h2>Audio</h2>
+        <p>Record yourself talking and the model listens to the actual audio &mdash; this is not &ldquo;transcribe first, then process the transcript.&rdquo; It hears the recording directly, which means it can cope with ums, corrections (&ldquo;actually, scratch that&rdquo;), and multiple speakers.</p>
+      </div>
+
+      <div class="try-hint"><strong>Try this:</strong> ramble naturally for 20 seconds &mdash; &ldquo;so for the party we need balloons, um, cake obviously, actually no, cupcakes are easier...&rdquo; Notice whether it keeps the cake or the cupcakes. That's the test a plain transcription service fails.</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">&#127908;</div>
+          <div class="card-title">Audio</div>
+        </div>
+        <div class="audio-controls">
+          <button class="record-btn" id="recordBtn" title="Record">&#9679;</button>
+          <div class="record-status" id="recordStatus">Tap to record</div>
+        </div>
+        <div class="preview-area" id="audioPreview"></div>
+        <button class="submit-btn" id="audioSubmit" disabled>Extract Items <span class="spinner"></span></button>
+        <div class="results" id="audioResults"></div>
+      </div>
+
+      <details class="learn">
+        <summary>How this works</summary>
+        <div class="learn-body">
+          <p>The browser records your microphone, and the recording is attached to the same API call used everywhere else on this page &mdash; only the attachment type changes. Audio is tokenised at a fixed rate of <strong>32 tokens per second</strong>, so a one-minute recording is about 1,900 tokens.</p>
+          <p>Things to consider:</p>
+          <ul>
+            <li><strong>Audio input costs double text input</strong> ($0.50 vs $0.25 per million tokens) &mdash; still tiny, but it's a real pattern: richer input types cost more.</li>
+            <li><strong>Understanding vs transcription</strong> &mdash; you can ask for a verbatim transcript, a summary, extracted action items, or the speaker's mood, all from the same recording. The prompt decides.</li>
+            <li><strong>This is one-shot, not conversational</strong> &mdash; record, send, get an answer. Live back-and-forth voice needs a different API (the Live API), which this Lite model doesn't support.</li>
+          </ul>
+          <div class="ccc">
+            <div class="ccc-item"><div class="ccc-label">Cost</div><div class="ccc-value">32 tokens/second at $0.50/1M &mdash; a 1-minute voice note &approx; <strong>$0.001</strong>. An hour of audio &approx; 6 cents.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Capability</div><div class="ccc-value">Native listening: speech recognition, meaning, corrections, tone. No real-time conversation, no audio generation.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Context</div><div class="ccc-value">Up to ~8.4 hours of audio in a single request (one audio file per request).</div></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ Video ============ -->
+    <section class="panel" data-type="video" id="panel-video">
+      <div class="panel-intro">
+        <h2>Video</h2>
+        <p>The richest input: the model watches the frames <em>and</em> listens to the soundtrack together. Walk through a room narrating what you see, and it combines what you said with what the camera saw.</p>
+      </div>
+
+      <div class="try-hint"><strong>Try this:</strong> record 15&ndash;30 seconds panning across a bookshelf or pantry while saying things like &ldquo;we're low on pasta.&rdquo; Check the results for items you only <em>showed</em> and items you only <em>said</em> &mdash; both should appear. Keep it short: video files get big fast.</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">&#127909;</div>
+          <div class="card-title">Video</div>
+        </div>
+        <div class="video-controls">
+          <button id="videoRecordBtn">Record Video</button>
+          <button id="videoStopBtn" style="display:none">Stop Recording</button>
+        </div>
+        <div class="file-input-wrap" style="margin-top:8px">
+          <input type="file" accept="video/*" id="videoFileInput">
+          <div class="label">Or upload a video file</div>
+        </div>
+        <div class="preview-area" id="videoPreview"></div>
+        <div class="size-warning" id="videoSizeWarning" style="display:none"></div>
+        <button class="submit-btn" id="videoSubmit" disabled>Extract Items <span class="spinner"></span></button>
+        <div class="results" id="videoResults"></div>
+      </div>
+
+      <details class="learn">
+        <summary>How this works</summary>
+        <div class="learn-body">
+          <p>Same single API call again, with the video file attached. Behind the scenes the model samples the video at about one frame per second and processes the audio track alongside &mdash; roughly <strong>300 tokens per second of footage</strong>, so a 30-second clip is ~9,000 tokens.</p>
+          <p>Things to consider:</p>
+          <ul>
+            <li><strong>File size is the real constraint</strong>, not model ability. Sending straight from the browser caps out around 15&ndash;20&nbsp;MB (a minute or two of phone video). Longer videos need a two-step upload (the Files API) &mdash; the model itself can watch up to ~45 minutes with audio.</li>
+            <li><strong>One frame per second</strong> means fast-moving detail gets missed. Slow pans work; quick flashes don't.</li>
+            <li><strong>Video is the most token-hungry input</strong> &mdash; fine per-clip, but this is where cost math starts to matter at scale.</li>
+          </ul>
+          <div class="ccc">
+            <div class="ccc-item"><div class="ccc-label">Cost</div><div class="ccc-value">~300 tokens/second at $0.25/1M &mdash; a 30-second clip &approx; <strong>$0.002</strong>. A 10-minute video &approx; 4&ndash;5 cents.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Capability</div><div class="ccc-value">Combined sight + hearing over time. Great for walkthroughs and demos; misses split-second detail (1 frame/sec sampling).</div></div>
+            <div class="ccc-item"><div class="ccc-label">Context</div><div class="ccc-value">Model handles ~45 min of video with audio; the browser-upload path here limits you to ~15&nbsp;MB per clip.</div></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ PDF ============ -->
+    <section class="panel" data-type="pdf" id="panel-pdf">
+      <div class="panel-intro">
+        <h2>PDF</h2>
+        <p>Give the model a document and it reads it like a person would &mdash; layout, tables, headings and all. There's no copy-paste step and no fragile &ldquo;PDF text extraction&rdquo; tool; the model looks at each page directly, so even scanned documents work.</p>
+      </div>
+
+      <div class="try-hint"><strong>Try this:</strong> a bank statement, an invoice, a school newsletter, or a product manual. Documents with tables are the best test &mdash; pulling clean rows out of a table is genuinely hard for traditional software and routine for this.</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">&#128196;</div>
+          <div class="card-title">PDF</div>
+        </div>
+        <div class="file-input-wrap">
+          <input type="file" accept=".pdf,application/pdf" id="pdfInput">
+          <div class="label">Choose a PDF document</div>
+        </div>
+        <div class="file-name" id="pdfFileName"></div>
+        <button class="submit-btn" id="pdfSubmit" disabled>Extract Items <span class="spinner"></span></button>
+        <div class="results" id="pdfResults"></div>
+      </div>
+
+      <details class="learn">
+        <summary>How this works</summary>
+        <div class="learn-body">
+          <p>The PDF is attached to the standard call, and the model treats each page somewhat like an image &mdash; about <strong>260 tokens per page</strong> &mdash; which is why scans, stamps, signatures and table layouts all survive. The response schema then forces the findings into your structured list.</p>
+          <p>Things to consider:</p>
+          <ul>
+            <li><strong>This is the highest-value business pattern on this page</strong> &mdash; &ldquo;document in, database rows out&rdquo; replaces a lot of manual data entry. Adapt the schema to your document type: invoice fields, statement transactions, form answers.</li>
+            <li><strong>Scale is generous</strong> &mdash; up to 1,000+ pages per document and multiple documents per request (50&nbsp;MB per file via the API).</li>
+            <li><strong>Verify numbers on high-stakes documents</strong> &mdash; extraction is very good but not certified-accurate; for invoices and statements, spot-check totals.</li>
+          </ul>
+          <div class="ccc">
+            <div class="ccc-item"><div class="ccc-label">Cost</div><div class="ccc-value">~260 tokens/page &mdash; a 10-page document &approx; <strong>$0.0007</strong>. A thousand 10-page documents &approx; 70 cents.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Capability</div><div class="ccc-value">Document understanding: tables, layouts, scans, handwriting. Reads like a person, outputs like a database.</div></div>
+            <div class="ccc-item"><div class="ccc-label">Context</div><div class="ccc-value">Up to ~1,000 pages per file, 50&nbsp;MB per file, 3,000 files per request &mdash; whole contracts and reports fit easily.</div></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+  </main>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Settings</h2>
+    <label for="apiKeyInput">Gemini API Key</label>
+    <input type="text" id="apiKeyInput" placeholder="AIza...">
+    <div class="hint">Get a key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a></div>
+    <div class="modal-actions">
+      <button id="cancelSettings">Cancel</button>
+      <button class="save-btn" id="saveSettings">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// AI AGENT NOTE: everything below is intentionally minimal. The whole app
+// is: (1) collect an input, (2) base64-encode it if it's a file,
+// (3) call extractItems() with the right mimeType and prompt.
+// If you're building a new app from this reference, start by copying
+// extractItems() and the schema, then swap in your own UI.
+import { GoogleGenAI } from 'https://esm.sh/@google/genai@1.30.0';
+
+const STORAGE_KEY = 'kitchen_sink_api_key';
+
+// Model choice: gemini-3.1-flash-lite = cheapest + fastest Gemini that
+// still accepts text/image/audio/video/PDF input and structured output.
+// Swap the string for a Flash or Pro model if the task needs more
+// reasoning - no other code changes required.
+const MODEL = 'gemini-3.1-flash-lite';
+
+// The response schema: this is what turns a chatbot into a feature.
+// The API guarantees the reply parses as JSON matching this shape.
+// To build a different app, change these fields (e.g. add priority,
+// due_date, price) - the model fills in whatever you declare.
+const listItemsSchema = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'The item' },
+          category: { type: 'string', description: 'A category' },
+          details: { type: 'string', description: 'Any extra details' }
+        },
+        required: ['name']
+      }
+    }
+  },
+  required: ['items']
+};
+
+// --- Utilities ---
+
+function getApiKey() {
+  return localStorage.getItem(STORAGE_KEY) || '';
+}
+
+function showToast(msg, duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), duration);
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function renderResults(el, items) {
+  if (!items || items.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-secondary);font-size:0.9rem;margin-top:8px">No items found.</p>';
+    return;
+  }
+  const html = `<ul class="results-list">${items.map(item => `
+    <li>
+      <span class="item-name">${esc(item.name)}</span>
+      ${item.category ? `<span class="item-category">${esc(item.category)}</span>` : ''}
+      ${item.details ? `<div class="item-details">${esc(item.details)}</div>` : ''}
+    </li>`).join('')}</ul>`;
+  el.innerHTML = html;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function setLoading(btn, loading) {
+  btn.disabled = loading;
+  btn.classList.toggle('loading', loading);
+}
+
+// THE ONE API CALL used by all five demos. `parts` is [] for plain text,
+// or [{ inlineData: { mimeType, data: <base64> } }] for any file type -
+// image, audio, video and PDF all go through this identical code path.
+// Useful config knobs not used here: temperature, thinkingLevel
+// (minimal/low/medium/high on this model), systemInstruction.
+async function extractItems(parts, promptText, resultsEl, btn) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showToast('Set your API key in Settings first');
+    return;
+  }
+  setLoading(btn, true);
+  resultsEl.innerHTML = '';
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [{ role: 'user', parts: [{ text: promptText }, ...parts] }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: listItemsSchema
+      }
+    });
+    const data = JSON.parse(response.text);
+    renderResults(resultsEl, data.items);
+    showToast(`Found ${data.items.length} item${data.items.length === 1 ? '' : 's'}`);
+  } catch (e) {
+    console.error(e);
+    showToast('Error: ' + (e.message || 'Something went wrong'));
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+// --- Navigation (UI only, no API involvement) ---
+
+const navBtns = document.querySelectorAll('.nav-btn');
+navBtns.forEach(btn => {
+  btn.onclick = () => {
+    navBtns.forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.panel').forEach(p =>
+      p.classList.toggle('active', p.id === 'panel-' + btn.dataset.panel));
+    window.scrollTo({ top: 0 });
+  };
+});
+
+// --- Settings ---
+// AI AGENT NOTE: browser-side key storage is fine for a local demo file,
+// but move the key to a server for anything shared or deployed.
+
+const modal = document.getElementById('settingsModal');
+const apiKeyInput = document.getElementById('apiKeyInput');
+
+function openSettingsModal() {
+  apiKeyInput.value = getApiKey();
+  modal.classList.add('visible');
+}
+document.getElementById('openSettings').onclick = openSettingsModal;
+document.getElementById('setupOpenSettings').onclick = openSettingsModal;
+document.getElementById('cancelSettings').onclick = () => modal.classList.remove('visible');
+document.getElementById('saveSettings').onclick = () => {
+  localStorage.setItem(STORAGE_KEY, apiKeyInput.value.trim());
+  modal.classList.remove('visible');
+  showToast('API key saved');
+};
+modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('visible'); };
+
+// --- Text: plain string in the prompt, no parts needed ---
+
+document.getElementById('textSubmit').onclick = () => {
+  const text = document.getElementById('textInput').value.trim();
+  if (!text) { showToast('Enter some text first'); return; }
+  extractItems([], 'Extract distinct items from this text:\n\n' + text,
+    document.getElementById('textResults'),
+    document.getElementById('textSubmit'));
+};
+
+// --- Image: file -> base64 -> inlineData part. Same pattern for every
+// file-based modality below; only mimeType and prompt change. ---
+
+let imageFile = null;
+document.getElementById('imageInput').onchange = (e) => {
+  imageFile = e.target.files[0];
+  if (!imageFile) return;
+  const preview = document.getElementById('imagePreview');
+  preview.innerHTML = `<img src="${URL.createObjectURL(imageFile)}" alt="Preview">`;
+  document.getElementById('imageSubmit').disabled = false;
+};
+
+document.getElementById('imageSubmit').onclick = async () => {
+  if (!imageFile) return;
+  const base64 = await fileToBase64(imageFile);
+  extractItems(
+    [{ inlineData: { mimeType: imageFile.type, data: base64 } }],
+    'Identify and list all distinct items visible in this image',
+    document.getElementById('imageResults'),
+    document.getElementById('imageSubmit')
+  );
+};
+
+// --- Audio: MediaRecorder captures mic -> webm blob -> same inlineData
+// pattern. The model hears audio natively (32 tokens/sec); no separate
+// transcription step exists or is needed. ---
+
+let audioBlob = null;
+let mediaRecorder = null;
+let recordingStart = 0;
+let timerInterval = null;
+
+const recordBtn = document.getElementById('recordBtn');
+const recordStatus = document.getElementById('recordStatus');
+
+recordBtn.onclick = async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const chunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(timerInterval);
+      recordBtn.classList.remove('recording');
+      recordBtn.innerHTML = '&#9679;';
+      recordStatus.textContent = 'Tap to record';
+      audioBlob = new Blob(chunks, { type: 'audio/webm' });
+      const preview = document.getElementById('audioPreview');
+      preview.innerHTML = `<audio controls src="${URL.createObjectURL(audioBlob)}"></audio>`;
+      document.getElementById('audioSubmit').disabled = false;
+    };
+    mediaRecorder.start();
+    recordBtn.classList.add('recording');
+    recordBtn.innerHTML = '&#9632;';
+    recordingStart = Date.now();
+    timerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - recordingStart) / 1000);
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      recordStatus.innerHTML = `Recording <span class="timer">${mm}:${ss}</span>`;
+    }, 500);
+  } catch (e) {
+    showToast('Microphone access denied');
+  }
+};
+
+document.getElementById('audioSubmit').onclick = async () => {
+  if (!audioBlob) return;
+  const base64 = await fileToBase64(new File([audioBlob], 'audio.webm', { type: 'audio/webm' }));
+  extractItems(
+    [{ inlineData: { mimeType: 'audio/webm', data: base64 } }],
+    'Listen to this audio and extract all mentioned items',
+    document.getElementById('audioResults'),
+    document.getElementById('audioSubmit')
+  );
+};
+
+// --- Video: camera recording or file upload -> same inlineData pattern.
+// Inline base64 is only practical to ~15-20 MB of request; for longer
+// videos use the Files API (upload once, reference by URI) instead. ---
+
+let videoBlob = null;
+let videoRecorder = null;
+let videoStream = null;
+
+const videoPreview = document.getElementById('videoPreview');
+const videoRecordBtn = document.getElementById('videoRecordBtn');
+const videoStopBtn = document.getElementById('videoStopBtn');
+const videoSizeWarning = document.getElementById('videoSizeWarning');
+
+videoRecordBtn.onclick = async () => {
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const videoEl = document.createElement('video');
+    videoEl.srcObject = videoStream;
+    videoEl.autoplay = true;
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+    videoPreview.innerHTML = '';
+    videoPreview.appendChild(videoEl);
+
+    const chunks = [];
+    videoRecorder = new MediaRecorder(videoStream, { mimeType: 'video/webm' });
+    videoRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    videoRecorder.onstop = () => {
+      videoStream.getTracks().forEach(t => t.stop());
+      videoBlob = new Blob(chunks, { type: 'video/webm' });
+      showVideoPreview(videoBlob);
+      videoRecordBtn.style.display = '';
+      videoStopBtn.style.display = 'none';
+    };
+    videoRecorder.start();
+    videoRecordBtn.style.display = 'none';
+    videoStopBtn.style.display = '';
+  } catch (e) {
+    showToast('Camera access denied');
+  }
+};
+
+videoStopBtn.onclick = () => {
+  if (videoRecorder && videoRecorder.state === 'recording') videoRecorder.stop();
+};
+
+document.getElementById('videoFileInput').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  videoBlob = file;
+  showVideoPreview(file);
+};
+
+function showVideoPreview(blob) {
+  const url = URL.createObjectURL(blob);
+  videoPreview.innerHTML = `<video controls playsinline src="${url}"></video>`;
+  document.getElementById('videoSubmit').disabled = false;
+  const sizeMB = blob.size / (1024 * 1024);
+  if (sizeMB > 15) {
+    videoSizeWarning.textContent = `File is ${sizeMB.toFixed(1)} MB - may be too large for the API (>15 MB)`;
+    videoSizeWarning.style.display = '';
+  } else {
+    videoSizeWarning.style.display = 'none';
+  }
+}
+
+document.getElementById('videoSubmit').onclick = async () => {
+  if (!videoBlob) return;
+  const file = videoBlob instanceof File ? videoBlob : new File([videoBlob], 'video.webm', { type: 'video/webm' });
+  const base64 = await fileToBase64(file);
+  extractItems(
+    [{ inlineData: { mimeType: file.type || 'video/webm', data: base64 } }],
+    'Watch this video and extract all items mentioned or shown',
+    document.getElementById('videoResults'),
+    document.getElementById('videoSubmit')
+  );
+};
+
+// --- PDF: same inlineData pattern with application/pdf. The model reads
+// pages visually (~260 tokens/page), so scans and tables work. This
+// "document in, structured rows out" pattern is the one most worth
+// adapting into real apps. ---
+
+let pdfFile = null;
+document.getElementById('pdfInput').onchange = (e) => {
+  pdfFile = e.target.files[0];
+  if (!pdfFile) return;
+  document.getElementById('pdfFileName').textContent = pdfFile.name;
+  document.getElementById('pdfSubmit').disabled = false;
+};
+
+document.getElementById('pdfSubmit').onclick = async () => {
+  if (!pdfFile) return;
+  const base64 = await fileToBase64(pdfFile);
+  extractItems(
+    [{ inlineData: { mimeType: 'application/pdf', data: base64 } }],
+    'Read this document and extract all items mentioned',
+    document.getElementById('pdfResults'),
+    document.getElementById('pdfSubmit')
+  );
+};
+</script>
+</body>
+</html>
