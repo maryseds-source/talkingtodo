@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Harry Potter's To-Do List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
     --parchment: #f5ecd7;
@@ -288,6 +291,192 @@
     font-style: italic;
     color: var(--ink-soft);
   }
+
+  /* ---------- Tom Riddle's Diary ---------- */
+
+  .diary {
+    max-width: 720px;
+    margin: 36px auto 0;
+  }
+
+  .diary-book {
+    background:
+      radial-gradient(ellipse at 30% 0%, rgba(211, 166, 37, 0.08), transparent 55%),
+      linear-gradient(150deg, #2a1e12 0%, #1a120a 55%, #241a10 100%);
+    border-radius: 12px;
+    padding: 24px 22px 20px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(211, 166, 37, 0.22);
+  }
+
+  .diary-book-title {
+    text-align: center;
+    color: rgba(211, 166, 37, 0.8);
+    font-size: 0.78rem;
+    letter-spacing: 3.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .diary-page {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.4), transparent 55%),
+      linear-gradient(180deg, #f1e7cd 0%, #e3d5b2 100%);
+    border-radius: 4px;
+    padding: 26px 28px 30px;
+    min-height: 200px;
+    box-shadow: inset 0 0 46px rgba(80, 60, 20, 0.28);
+    font-family: 'Caveat', cursive;
+  }
+
+  .diary-form { display: flex; gap: 10px; align-items: flex-end; }
+
+  .diary-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px dashed rgba(43, 29, 14, 0.3);
+    font-family: 'Caveat', cursive;
+    font-size: 1.5rem;
+    color: #1e2a52;
+    padding: 4px 2px 6px;
+    caret-color: #1e2a52;
+  }
+  .diary-input::placeholder { color: rgba(43, 29, 14, 0.35); }
+  .diary-input:focus { outline: none; border-bottom-color: rgba(43, 29, 14, 0.6); }
+  .diary-input:disabled { opacity: 0.45; }
+
+  .diary-quill {
+    font-family: 'Caveat', cursive;
+    font-size: 1.15rem;
+    background: transparent;
+    border: 1px solid rgba(43, 29, 14, 0.35);
+    border-radius: 999px;
+    color: #1e2a52;
+    padding: 3px 16px 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .diary-quill:hover { background: rgba(30, 42, 82, 0.1); }
+  .diary-quill:disabled { opacity: 0.4; cursor: default; }
+
+  .diary-response { margin-top: 18px; min-height: 40px; }
+
+  .ink-line {
+    font-size: 1.4rem;
+    line-height: 1.5;
+    color: #1e2a52;
+    opacity: 0;
+    animation: ink-appear 1.4s ease forwards;
+  }
+  .ink-line.question { font-style: italic; color: #3a2c14; }
+  .ink-line.reply { margin-bottom: 8px; }
+  .ink-line.task-line { padding-left: 14px; }
+  .ink-line.task-line .cat { font-size: 1.05rem; color: rgba(30, 42, 82, 0.6); }
+  .ink-line.task-line.is-done { text-decoration: line-through; opacity: 0.7; }
+  .ink-line.whisper { font-size: 1.15rem; color: rgba(30, 42, 82, 0.65); font-style: italic; }
+
+  @keyframes ink-appear {
+    from { opacity: 0; filter: blur(5px); transform: translateY(3px); }
+    to   { opacity: 1; filter: blur(0);  transform: none; }
+  }
+
+  .ink-line.sink { animation: ink-sink 1.8s ease forwards; }
+  @keyframes ink-sink {
+    from { opacity: 1; filter: blur(0); }
+    60%  { opacity: 0.4; }
+    to   { opacity: 0; filter: blur(7px); transform: translateY(4px) scale(0.99); }
+  }
+
+  .ink-blot {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    margin: 14px 4px 0;
+    border-radius: 50% 45% 55% 50%;
+    background: #1e2a52;
+    animation: blot-pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes blot-pulse {
+    0%, 100% { transform: scale(0.7); opacity: 0.35; }
+    50%      { transform: scale(1.15); opacity: 0.85; }
+  }
+
+  .diary-caption {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: rgba(245, 236, 215, 0.55);
+  }
+  .diary-caption button {
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--gryffindor-gold);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+
+  /* Diary settings modal */
+  .diary-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 6, 14, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .diary-modal-overlay.visible { display: flex; }
+  .diary-modal {
+    background: linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dark) 100%);
+    border-radius: 10px;
+    padding: 26px;
+    width: 100%;
+    max-width: 430px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(211, 166, 37, 0.4);
+    color: var(--ink);
+  }
+  .diary-modal h2 { font-size: 1.1rem; margin-bottom: 6px; color: var(--gryffindor-red); }
+  .diary-modal p.modal-hint {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .diary-modal p.modal-hint a { color: var(--gryffindor-red); }
+  .diary-modal input[type="text"] {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid rgba(43, 29, 14, 0.35);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: rgba(255, 255, 255, 0.55);
+    color: var(--ink);
+  }
+  .diary-modal input[type="text"]:focus { outline: 2px solid var(--gryffindor-gold); outline-offset: 1px; }
+  .diary-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .diary-modal-actions button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(43, 29, 14, 0.3);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .diary-modal-actions button:hover { background: rgba(211, 166, 37, 0.2); }
+  .diary-modal-actions .save-btn {
+    background: var(--gryffindor-red);
+    border-color: var(--gryffindor-red);
+    color: #f7e8b5;
+  }
+  .diary-modal-actions .save-btn:hover { background: #8e0b0c; }
 </style>
 </head>
 <body>
@@ -321,6 +510,48 @@
 
     <footer>“I solemnly swear that I am up to no good.” — Tap a task to mark it done.</footer>
   </main>
+
+  <!-- ============ Tom Riddle's Diary ============ -->
+  <section class="diary" aria-label="Tom Riddle's Diary">
+    <div class="diary-book">
+      <div class="diary-book-title">T. M. Riddle &mdash; Diary</div>
+      <div class="diary-page">
+        <form class="diary-form" id="diary-form">
+          <input
+            type="text"
+            class="diary-input"
+            id="diary-input"
+            placeholder="Write to the diary… e.g. What must I do before Quidditch tryouts?"
+            autocomplete="off"
+          />
+          <button type="submit" class="diary-quill" id="diary-quill">Ask ✒️</button>
+        </form>
+        <div class="diary-response" id="diary-response" aria-live="polite"></div>
+      </div>
+    </div>
+    <p class="diary-caption">
+      Ask the diary about your tasks and the answer will surface in ink… then fade away.
+      Needs a free Gemini key — <button type="button" id="diary-open-settings">set it here</button>.
+    </p>
+  </section>
+
+  <!-- Diary settings modal -->
+  <div class="diary-modal-overlay" id="diary-settings-modal">
+    <div class="diary-modal">
+      <h2>The Diary's Secret</h2>
+      <p class="modal-hint">
+        The diary answers using the Gemini API. Get a free key from
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+        and paste it below. It is stored only in this browser.
+      </p>
+      <label for="diary-api-key" style="font-size:0.85rem;font-weight:bold;display:block;margin-bottom:6px;">Gemini API Key</label>
+      <input type="text" id="diary-api-key" placeholder="AIza…" />
+      <div class="diary-modal-actions">
+        <button type="button" id="diary-cancel-settings">Cancel</button>
+        <button type="button" class="save-btn" id="diary-save-settings">Save</button>
+      </div>
+    </div>
+  </div>
 
 <script>
   const CATEGORIES = [
@@ -472,6 +703,201 @@
   });
 
   render();
+
+  // Expose read-only task state for the diary module script below.
+  window.getDiaryTasks = () =>
+    tasks.map(t => ({
+      text: t.text,
+      done: t.done,
+      category: (CATEGORIES.find(c => c.id === t.cat) || {}).name || t.cat,
+    }));
+</script>
+
+<script type="module">
+// ============ Tom Riddle's Diary ============
+// Pattern borrowed from flash-demo.html: one generateContent call with a
+// responseSchema so the model must answer with structured JSON, which we
+// then render as fading ink. Model = cheapest/fastest Gemini that still
+// handles this fine; swap for a Flash/Pro model if answers need more depth.
+import { GoogleGenAI } from 'https://esm.sh/@google/genai@1.30.0';
+
+const MODEL = 'gemini-3.1-flash-lite';
+const API_KEY_STORAGE = 'hp-diary-gemini-key';
+
+// The diary must reply in-character AND pick out the relevant tasks, so the
+// schema has two parts: a short handwritten reply, and the matching items.
+const diarySchema = {
+  type: 'object',
+  properties: {
+    reply: {
+      type: 'string',
+      description: "A single short sentence answering the writer, in the voice of Tom Riddle's enchanted diary: polite, knowing, slightly eerie."
+    },
+    items: {
+      type: 'array',
+      description: 'The to-do items from the provided list that answer the question. Empty if none are relevant.',
+      items: {
+        type: 'object',
+        properties: {
+          text: { type: 'string', description: 'The task text, copied exactly from the list' },
+          category: { type: 'string', description: 'The category of the task' },
+          done: { type: 'boolean', description: 'Whether the task is already complete' }
+        },
+        required: ['text']
+      }
+    }
+  },
+  required: ['reply', 'items']
+};
+
+const form = document.getElementById('diary-form');
+const input = document.getElementById('diary-input');
+const quill = document.getElementById('diary-quill');
+const responseEl = document.getElementById('diary-response');
+
+// --- API key settings modal ---
+
+const modal = document.getElementById('diary-settings-modal');
+const keyInput = document.getElementById('diary-api-key');
+const getApiKey = () => localStorage.getItem(API_KEY_STORAGE) || '';
+
+function openSettings() {
+  keyInput.value = getApiKey();
+  modal.classList.add('visible');
+  keyInput.focus();
+}
+document.getElementById('diary-open-settings').onclick = openSettings;
+document.getElementById('diary-cancel-settings').onclick = () => modal.classList.remove('visible');
+document.getElementById('diary-save-settings').onclick = () => {
+  localStorage.setItem(API_KEY_STORAGE, keyInput.value.trim());
+  modal.classList.remove('visible');
+  whisper('The diary is listening…');
+};
+modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('visible'); };
+
+// --- Ink rendering helpers ---
+
+let fadeTimer = null;
+let clearTimer = null;
+
+function addLine(text, className, delayMs) {
+  const p = document.createElement('p');
+  p.className = 'ink-line ' + className;
+  p.style.animationDelay = delayMs + 'ms';
+  p.textContent = text;
+  responseEl.appendChild(p);
+  return p;
+}
+
+function whisper(text) {
+  clearInk(false);
+  addLine(text, 'whisper', 0);
+  scheduleFade(4000);
+}
+
+function clearInk(animate) {
+  clearTimeout(fadeTimer);
+  clearTimeout(clearTimer);
+  if (!animate) { responseEl.innerHTML = ''; return; }
+  responseEl.querySelectorAll('.ink-line').forEach((el, i) => {
+    el.style.animationDelay = (i * 150) + 'ms';
+    el.classList.remove('question', 'sink');
+    void el.offsetWidth; // restart animation
+    el.classList.add('sink');
+  });
+  const lineCount = responseEl.children.length;
+  clearTimer = setTimeout(() => { responseEl.innerHTML = ''; }, 1800 + lineCount * 150);
+}
+
+// The signature Riddle move: whatever is written fades back into the page.
+function scheduleFade(afterMs) {
+  clearTimeout(fadeTimer);
+  fadeTimer = setTimeout(() => clearInk(true), afterMs);
+}
+
+// --- Asking the diary ---
+
+form.onsubmit = async (e) => {
+  e.preventDefault();
+  const question = input.value.trim();
+  if (!question) return;
+
+  if (!getApiKey()) { openSettings(); return; }
+
+  clearInk(false);
+  input.value = '';
+  input.disabled = true;
+  quill.disabled = true;
+
+  // Echo the question, then let it sink into the page like Harry's ink.
+  const echoed = addLine(question, 'question', 0);
+  setTimeout(() => echoed.classList.add('sink'), 900);
+
+  const blot = document.createElement('span');
+  blot.className = 'ink-blot';
+  responseEl.appendChild(blot);
+
+  try {
+    const tasks = window.getDiaryTasks();
+    const taskList = tasks
+      .map(t => `- [${t.done ? 'done' : 'to do'}] (${t.category}) ${t.text}`)
+      .join('\n');
+
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [{
+        role: 'user',
+        parts: [{
+          text:
+`You are Tom Riddle's enchanted diary from Harry Potter, answering questions about the owner's to-do list. Stay in character: courteous, knowing, a little eerie, never more than one short sentence in the reply.
+
+Here is the current to-do list:
+${taskList}
+
+The writer asks: "${question}"
+
+Select only the tasks relevant to the question (match categories, urgency, completion status or topics as appropriate). If the question is a greeting or unrelated to the list, return an empty items array and just reply in character.`
+        }]
+      }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: diarySchema
+      }
+    });
+
+    const data = JSON.parse(response.text);
+    blot.remove();
+    if (echoed.isConnected) echoed.remove();
+
+    addLine(data.reply, 'reply', 0);
+    data.items.forEach((item, i) => {
+      const line = addLine(
+        (item.done ? '✓ ' : '• ') + item.text,
+        'task-line' + (item.done ? ' is-done' : ''),
+        600 + i * 500
+      );
+      if (item.category) {
+        const cat = document.createElement('span');
+        cat.className = 'cat';
+        cat.textContent = '  — ' + item.category;
+        line.appendChild(cat);
+      }
+    });
+
+    // Linger long enough to be read, then fade away like Riddle's ink.
+    const readingTime = 6000 + data.items.length * 1800;
+    scheduleFade(readingTime);
+  } catch (err) {
+    console.error(err);
+    blot.remove();
+    whisper('The ink refuses to settle… (' + (err.message || 'something went wrong') + ')');
+  } finally {
+    input.disabled = false;
+    quill.disabled = false;
+    input.focus();
+  }
+};
 </script>
 </body>
 </html>
