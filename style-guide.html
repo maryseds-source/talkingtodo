@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DREAMHOUSE &mdash; Style Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Pacifico&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ------ palette ------ */
+    --barbie-pink: #E0218A;   /* outer chrome / focal points  */
+    --bubblegum:   #FFA6D5;   /* dominant canvas              */
+    --dream-pink:  #FF6EB4;   /* hover / pressed              */
+    --hot-magenta: #D6006F;   /* accent / CTA                 */
+    --deep-berry:  #A10052;   /* magenta hover / shadow       */
+    --plum-noir:   #3B0A2A;   /* text, borders, shadows       */
+    --doll-white:  #FFFFFF;   /* card backgrounds, bubbles    */
+    --powder:      #FFEFF7;   /* off-white fills              */
+    --malibu:      #6BCDE8;   /* Ken accents, pool moments    */
+    --glitter:     #FFC53D;   /* jewellery, sparkle moments   */
+
+    --border-w: 3px;
+    --radius-lg: 26px;
+    --radius-md: 16px;
+    --shadow-pop: 8px 8px 0 var(--plum-noir);
+    --shadow-soft: 5px 5px 0 var(--plum-noir);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--barbie-pink);
+    font-family: 'Archivo', sans-serif;
+    color: var(--plum-noir);
+    padding: 56px 24px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+
+  /* ================= header ================= */
+  .hero {
+    background: var(--bubblegum);
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-pop);
+    padding: 48px 52px 44px;
+  }
+  .hero .kicker {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--deep-berry);
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-family: 'Titan One', cursive;
+    font-size: clamp(52px, 9vw, 88px);
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+    color: var(--plum-noir);
+    text-shadow: 4px 4px 0 var(--doll-white);
+  }
+  .hero .kana {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    margin: 16px 0 22px;
+    color: var(--deep-berry);
+  }
+  .hero p.blurb {
+    font-size: 15.5px;
+    line-height: 1.65;
+    max-width: 58ch;
+    font-weight: 500;
+  }
+  .hero p.blurb em { font-style: italic; font-weight: 700; }
+  .hero .script {
+    display: inline-block;
+    font-family: 'Pacifico', cursive;
+    font-size: 22px;
+    color: var(--hot-magenta);
+    margin-top: 20px;
+    transform: rotate(-2deg);
+  }
+
+  /* ================= section shells ================= */
+  .section {
+    background: var(--bubblegum);
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-pop);
+    overflow: hidden;
+  }
+  .section-bar {
+    background: var(--plum-noir);
+    padding: 12px 26px;
+  }
+  .section-bar h2 {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--bubblegum);
+  }
+  .section-body { padding: 34px 34px 38px; }
+
+  /* ================= swatches ================= */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 26px 22px;
+  }
+  .swatch .chip {
+    height: 92px;
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-md);
+    box-shadow: 4px 4px 0 var(--plum-noir);
+  }
+  .swatch h3 { font-size: 13px; font-weight: 800; margin: 12px 0 3px; }
+  .swatch .hex {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--deep-berry);
+  }
+  .swatch .use { font-size: 11px; line-height: 1.45; margin-top: 5px; font-weight: 500; }
+
+  .rule-box {
+    margin-top: 34px;
+    border-top: 2px dashed var(--deep-berry);
+    padding-top: 22px;
+  }
+  .rule-box .rule-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--deep-berry);
+    margin-bottom: 10px;
+  }
+  .rule-box p { font-size: 13.5px; line-height: 1.7; max-width: 62ch; font-weight: 500; }
+  .rule-box strong { font-weight: 800; }
+
+  /* ================= typography ================= */
+  .type-row {
+    background: var(--doll-white);
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .type-row + .type-row { margin-top: 20px; }
+  .type-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--deep-berry);
+  }
+  .type-display {
+    font-family: 'Titan One', cursive;
+    font-size: 44px;
+    line-height: 1.05;
+    color: var(--barbie-pink);
+    text-shadow: 3px 3px 0 var(--plum-noir);
+  }
+  .type-script {
+    font-family: 'Pacifico', cursive;
+    font-size: 34px;
+    color: var(--hot-magenta);
+  }
+  .type-body { font-size: 15px; line-height: 1.65; font-weight: 500; }
+  .type-mono { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--plum-noir); }
+
+  /* ================= components ================= */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 22px;
+  }
+  .comp-cell {
+    background: var(--powder);
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 26px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .comp-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--deep-berry);
+  }
+
+  .btn {
+    font-family: 'Archivo', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: 999px;
+    padding: 13px 26px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 var(--plum-noir);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+  .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--plum-noir); }
+  .btn-primary { background: var(--hot-magenta); color: var(--doll-white); }
+  .btn-primary:hover { background: var(--deep-berry); }
+  .btn-secondary { background: var(--doll-white); color: var(--hot-magenta); }
+  .btn-secondary:hover { background: var(--powder); }
+  .btn-ken { background: var(--malibu); color: var(--plum-noir); }
+  .btn[disabled] { background: var(--bubblegum); color: var(--deep-berry); opacity: 0.55; cursor: not-allowed; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border: 2px solid var(--plum-noir);
+    border-radius: 999px;
+    box-shadow: 3px 3px 0 var(--plum-noir);
+  }
+  .badge-new { background: var(--glitter); }
+  .badge-fave { background: var(--barbie-pink); color: var(--doll-white); }
+  .badge-pool { background: var(--malibu); }
+
+  .speech {
+    position: relative;
+    background: var(--doll-white);
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-md);
+    box-shadow: 4px 4px 0 var(--plum-noir);
+    padding: 16px 20px;
+    font-family: 'Pacifico', cursive;
+    font-size: 18px;
+    color: var(--hot-magenta);
+  }
+  .speech::after {
+    content: "";
+    position: absolute;
+    bottom: -16px;
+    left: 32px;
+    width: 20px;
+    height: 20px;
+    background: var(--doll-white);
+    border-right: var(--border-w) solid var(--plum-noir);
+    border-bottom: var(--border-w) solid var(--plum-noir);
+    transform: rotate(45deg) skew(10deg, 10deg);
+  }
+
+  /* ================= motifs ================= */
+  .motif-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .motif {
+    width: 96px;
+    height: 96px;
+    background: var(--doll-white);
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+  }
+  .motif-note { font-size: 12.5px; line-height: 1.6; margin-top: 20px; max-width: 60ch; font-weight: 500; }
+
+  /* ================= voice ================= */
+  .voice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 22px;
+  }
+  .voice-card {
+    border: var(--border-w) solid var(--plum-noir);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 24px;
+  }
+  .voice-do { background: var(--powder); }
+  .voice-dont { background: var(--doll-white); }
+  .voice-card h3 {
+    font-family: 'Titan One', cursive;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .voice-do h3 { color: var(--hot-magenta); }
+  .voice-dont h3 { color: var(--deep-berry); }
+  .voice-card ul { list-style: none; }
+  .voice-card li {
+    font-size: 13.5px;
+    line-height: 1.55;
+    font-weight: 500;
+    padding-left: 22px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .voice-do li::before { content: "\2665"; position: absolute; left: 0; color: var(--barbie-pink); }
+  .voice-dont li::before { content: "\2715"; position: absolute; left: 0; color: var(--deep-berry); font-weight: 800; }
+
+  footer {
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--powder);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <div class="kicker">Brand Style Guide &middot; V1.0</div>
+    <h1>DREAMHOUSE</h1>
+    <div class="kana">ドリームちゃん</div>
+    <p class="blurb">
+      A retro-glam doll universe blending Y2K sparkle, Malibu sunshine, and
+      hyper-pink optimism. Every pixel should feel <em>more is more,
+      never enough pink</em> &mdash; life in plastic, rendered fantastic.
+    </p>
+    <span class="script">Hi Barbie!</span>
+  </header>
+
+  <!-- ============ 01 COLOUR ============ -->
+  <section class="section">
+    <div class="section-bar"><h2>01 &mdash; Colour Palette</h2></div>
+    <div class="section-body">
+      <div class="swatch-grid">
+        <div class="swatch">
+          <div class="chip" style="background:#FFA6D5"></div>
+          <h3>Bubblegum</h3>
+          <div class="hex">#FFA6D5</div>
+          <div class="use">Primary background</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#FF6EB4"></div>
+          <h3>Dream Pink</h3>
+          <div class="hex">#FF6EB4</div>
+          <div class="use">Hover / pressed state</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#E0218A"></div>
+          <h3>Barbie Pink</h3>
+          <div class="hex">#E0218A</div>
+          <div class="use">Accent / outer chrome</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#D6006F"></div>
+          <h3>Hot Magenta</h3>
+          <div class="hex">#D6006F</div>
+          <div class="use">CTA buttons, links</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#A10052"></div>
+          <h3>Deep Berry</h3>
+          <div class="hex">#A10052</div>
+          <div class="use">Magenta hover / shadow</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#3B0A2A"></div>
+          <h3>Plum Noir</h3>
+          <div class="hex">#3B0A2A</div>
+          <div class="use">Text, borders, shadows</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#FFFFFF"></div>
+          <h3>Doll White</h3>
+          <div class="hex">#FFFFFF</div>
+          <div class="use">Card backgrounds, bubbles</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#FFEFF7"></div>
+          <h3>Powder</h3>
+          <div class="hex">#FFEFF7</div>
+          <div class="use">Off-white fills</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#6BCDE8"></div>
+          <h3>Malibu Blue</h3>
+          <div class="hex">#6BCDE8</div>
+          <div class="use">Ken accents, pool moments</div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#FFC53D"></div>
+          <h3>Glitter Gold</h3>
+          <div class="hex">#FFC53D</div>
+          <div class="use">Jewellery, sparkle moments</div>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <div class="rule-label">Usage Rule</div>
+        <p>
+          Bubblegum is the dominant canvas. Barbie Pink is reserved for
+          high-energy focal points and the outer chrome. <strong>Plum Noir</strong>
+          provides the thick doll-house outline across every element &mdash; never
+          pure black. White and Powder appear only inside cards or speech bubbles.
+          Malibu Blue is reserved for Ken props and playful secondary moments;
+          Glitter Gold is a garnish, never a fill. Never place magenta text on
+          pink without a white or plum stroke &mdash; it must <strong>sparkle</strong>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 TYPOGRAPHY ============ -->
+  <section class="section">
+    <div class="section-bar"><h2>02 &mdash; Typography</h2></div>
+    <div class="section-body">
+      <div class="type-row">
+        <div class="type-meta">Display &middot; Titan One &middot; Headlines only</div>
+        <div class="type-display">TOTALLY ICONIC</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">Accent script &middot; Pacifico &middot; Stickers &amp; callouts</div>
+        <div class="type-script">Come on Barbie, let&rsquo;s go party</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">Body &middot; Archivo 500&ndash;800 &middot; Everything else</div>
+        <div class="type-body">
+          Body copy is warm, confident, and a little breathless. Sentences stay
+          short. Exclamation marks are allowed &mdash; encouraged, actually! Weights
+          below 500 are never used; Dreamhouse doesn&rsquo;t do timid.
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">Technical &middot; Space Mono &middot; Labels, hex codes, metadata</div>
+        <div class="type-mono">DREAMHOUSE&nbsp;/&nbsp;SS-2026&nbsp;/&nbsp;#E0218A&nbsp;/&nbsp;MALIBU-CA</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 COMPONENTS ============ -->
+  <section class="section">
+    <div class="section-bar"><h2>03 &mdash; Buttons &amp; Components</h2></div>
+    <div class="section-body">
+      <div class="comp-grid">
+        <div class="comp-cell">
+          <div class="comp-label">Buttons</div>
+          <button class="btn btn-primary">Shop the look</button>
+          <button class="btn btn-secondary">Maybe later</button>
+          <button class="btn btn-ken">Ken mode</button>
+          <button class="btn" disabled>Sold out</button>
+        </div>
+        <div class="comp-cell">
+          <div class="comp-label">Badges</div>
+          <span class="badge badge-new">&#10024; New in</span>
+          <span class="badge badge-fave">&#9829; Fan fave</span>
+          <span class="badge badge-pool">Pool party</span>
+        </div>
+        <div class="comp-cell">
+          <div class="comp-label">Speech bubble</div>
+          <div class="speech">You can be anything!</div>
+        </div>
+      </div>
+
+      <div class="rule-box">
+        <div class="rule-label">Component Rule</div>
+        <p>
+          Every interactive element gets the full treatment: <strong>3px Plum Noir
+          outline, hard offset shadow, pill or rounded shape.</strong> On press,
+          elements sink into their shadow. Corners are never sharp &mdash; if it
+          could scratch a doll, round it off.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 MOTIFS ============ -->
+  <section class="section">
+    <div class="section-bar"><h2>04 &mdash; Motifs &amp; Iconography</h2></div>
+    <div class="section-body">
+      <div class="motif-row">
+        <div class="motif">&#128150;</div>
+        <div class="motif">&#10024;</div>
+        <div class="motif">&#127775;</div>
+        <div class="motif">&#127872;</div>
+        <div class="motif">&#128096;</div>
+        <div class="motif">&#127796;</div>
+        <div class="motif">&#128764;</div>
+      </div>
+      <div class="motif-note">
+        Hearts, sparkles, stars, bows, heels, palm trees, and roller skates are the core
+        motif set. Motifs are scattered as stickers at a slight rotation
+        (&minus;6&deg; to +6&deg;), always on a white or powder tile with the
+        standard outline. Maximum three motifs per composition &mdash; sparkle,
+        don&rsquo;t clutter.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 VOICE ============ -->
+  <section class="section">
+    <div class="section-bar"><h2>05 &mdash; Voice &amp; Tone</h2></div>
+    <div class="section-body">
+      <div class="voice-grid">
+        <div class="voice-card voice-do">
+          <h3>Say this</h3>
+          <ul>
+            <li>&ldquo;Hi Barbie! Your dream closet just restocked.&rdquo;</li>
+            <li>&ldquo;This look? Iconic. This price? Even more iconic.&rdquo;</li>
+            <li>&ldquo;You can be anything &mdash; today you&rsquo;re early.&rdquo;</li>
+          </ul>
+        </div>
+        <div class="voice-card voice-dont">
+          <h3>Never this</h3>
+          <ul>
+            <li>Sarcasm, irony, or anything &ldquo;too cool to care&rdquo;</li>
+            <li>Beige language: &ldquo;utilize&rdquo;, &ldquo;leverage&rdquo;, &ldquo;solutions&rdquo;</li>
+            <li>All-lowercase minimalism &mdash; Dreamhouse capitalises joy</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Dreamhouse Brand Systems &middot; Malibu, CA &middot; V1.0</footer>
+
+</div>
+</body>
+</html>
